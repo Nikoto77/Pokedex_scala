@@ -19,8 +19,7 @@ object Console {
 
   def writeList[A](list: List[A]): Task[Unit] =
     Task.sequence(
-      list.map(writeLine) // List[Task[Unit]]
-      // List[Task[Unit]] => Task[List[Unit]] => Task[Unit]
+      list.map(writeLine) 
     )
     .map(_ => ())
 }
