@@ -1,58 +1,61 @@
-package com.pokemon.db
 
-import monix.eval.Task
-import scala.collection.mutable.LinkedHashMap
 
-class PokemonDB(pokemons: List[Pokemon]) {
+import org.json4s.DefaultFormats
+import org.json4s.native.JsonMethods
 
-  def getPokemon(name: String): Option[Pokemon] =
-    pokemons.find(pokemon => pokemon.name == name)
+import scala.io.Source
 
-  def getAllPokemonsByType(pokemonType: String): List[Pokemon] =
-    pokemons.filter(pokemon => pokemon.type1 == pokemonType)
+object PokeAPI {
 
-  def countByType(pokemonType: String): Int =
-    pokemons.count(pokemon => pokemon.type1 == pokemonType)
-  
-  def matchByKeyword(keyword: String): List[Pokemon] =
-    pokemons.filter(pokemon => pokemon.name.contains(keyword))
+  val API_BASE_URL = "https://pokeapi.co/api/v2/"
 
-}
+  def pokedexApiEndpoint(): String = s"${API_BASE_URL}/pokedex/1/"
 
-object PokemonDB {
-  
-  private def readCSV(csvFile: String): Task[List[List[String]]] =
-    Task(
-      scala.io.Source.fromFile(csvFile)
-        .getLines()
-        .drop(1)
-        .map(line => line.split(",").toList)
-        .toList
-    )
+  def abilityApiEndpointGhost(): String = s"${API_BASE_URL}/ability"
+  def abilityApiEndpoint(limit: Int): String = s"${API_BASE_URL}/ability/?limit=${limit}&offset=0"
 
-  private def parsePokemons(lines: List[List[String]]): List[Pokemon] =
-    lines.map(parsePokemon)
+  def moveApiEndpointGhost(): String = s"${API_BASE_URL}/move"
+  def moveApiEndpoint(limit: Int): String = s"${API_BASE_URL}/move/?limit=${limit}&offset=0"
 
-  private def parsePokemon(attributes: List[String]): Pokemon =
-    Pokemon(
-      id = attributes(0).toInt,
-      name = attributes(1),
-      type1 = attributes(2),
-      type2 = attributes(3),
-      total = attributes(4).toInt,
-      hp = attributes(5).toInt,
-      attack = attributes(6).toInt,
-      defense = attributes(7).toInt,
-      spAttack = attributes(8).toInt,
-      spDefense = attributes(9).toInt,
-      speed = attributes(10).toInt,
-      generation = attributes(11).toInt,
-      legendary = attributes(12).toBoolean
-    )
+  def typeApiEndpointGhost(): String = s"${API_BASE_URL}/type"
+  def typeApiEndpoint(limit: Int): String = s"${API_BASE_URL}/type/?limit=${limit}&offset=0"
 
-  def importCSV(csvFile: String): Task[PokemonDB] =
-    readCSV(csvFile)
-      .map(parsePokemons)
-      .map(pokemons => new PokemonDB(pokemons))
+  def getPokedex(): List[Pokedex] = {
+    implicit val formats = DefaultFormats
+    val jsonResponse = Source.fromURL(pokedexApiEndpoint(), "utf-8").mkString
+    val parsedJson = JsonMethods.parse(jsonResponse).map(v => v.camelizeKeys)
+    val pokedex = (parsedJson \ "pokemon").extract[List[Pokedex]]
+    pokedex
+  }
 
+
+  def getAbilities(): List[Ability] = {
+    implicit val formats = DefaultFormats
+    val ghost = Source.fromURL(abilityApiEndpointGhost(), "utf-8").mkString
+    val totalCount = (JsonMethods.parse(ghost) \ "meta" \ "total_count").extract[Int]
+    val jsonResponse = Source.fromURL(abilityApiEndpoint(totalCount), "utf-8").mkString
+    val parsedJson = JsonMethods.parse(jsonResponse).map(v => v.camelizeKeys)
+    val abilities = (parsedJson \ "objects").extract[List[Ability]]
+    abilities
+  }
+
+  def getMoves(): List[Move] = {
+    implicit val formats = DefaultFormats
+    val ghost = Source.fromURL(moveApiEndpointGhost(), "utf-8").mkString
+    val totalCount = (JsonMethods.parse(ghost) \ "meta" \ "total_count").extract[Int]
+    val jsonResponse = Source.fromURL(moveApiEndpoint(totalCount), "utf-8").mkString
+    val parsedJson = JsonMethods.parse(jsonResponse).map(v => v.camelizeKeys)
+    val moves = (parsedJson \ "objects").extract[List[Move]]
+    moves
+  }
+
+  def getTypes(): List[Type] = {
+    implicit val formats = DefaultFormats
+    val ghost = Source.fromURL(typeApiEndpointGhost(), "utf-8").mkString
+    val totalCount = (JsonMethods.parse(ghost) \ "meta" \ "total_count").extract[Int]
+    val jsonResponse = Source.fromURL(typeApiEndpoint(totalCount), "utf-8").mkString
+    val parsedJson = JsonMethods.parse(jsonResponse).map(v => v.camelizeKeys)
+    val types = (parsedJson \ "objects").extract[List[Type]]
+    types
+  }
 }

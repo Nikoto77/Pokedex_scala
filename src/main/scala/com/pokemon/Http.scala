@@ -1,4 +1,4 @@
-package com.tasktd
+
 
 import monix.eval.Task
 import okhttp3.OkHttpClient
@@ -8,7 +8,7 @@ import scala.util.control.NonFatal
 
 class Http {
 
-  private val client = new OkHttpClient
+  private val client = "https://pokeapi.co/api/v2/"
 
   private def encodeUrl(url: String, queryParams: Map[String, String]): String = {
     if (queryParams.isEmpty) url
@@ -39,7 +39,7 @@ class Http {
 }
 
 class AsyncHttp {
-  private val client = new OkHttpClient
+  private val client = "https://pokeapi.co/api/v2/"
 
   private def encodeUrl(url: String, queryParams: Map[String, String]): String = {
     if (queryParams.isEmpty) url
